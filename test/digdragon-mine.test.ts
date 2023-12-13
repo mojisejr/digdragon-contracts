@@ -8,7 +8,9 @@ describe("Digdragon mining Test", () => {
     const nftFact = await ethers.getContractFactory("NFT");
     const mineFact = await ethers.getContractFactory("DigDragonMine");
     const rewardFact = await ethers.getContractFactory("Reward");
-    const hashStorageFact = await ethers.getContractFactory("HashPowerStorage");
+    const hashStorageFact = await ethers.getContractFactory(
+      "DigDragonPowerStorage"
+    );
     const startBlock = await time.latestBlock();
     const endBlock = startBlock + 100;
     const rewardPerBlock = 1000;
@@ -17,7 +19,6 @@ describe("Digdragon mining Test", () => {
     const reward = await rewardFact.deploy();
     await reward.deployed();
     const hashPowerStorage = await hashStorageFact.deploy(
-      nft.address,
       [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
       [
         50n,
@@ -47,6 +48,7 @@ describe("Digdragon mining Test", () => {
       nft.address,
       reward.address,
       hashPowerStorage.address,
+      owner.address,
       startBlock,
       rewardPerBlock,
       endBlock
@@ -231,6 +233,9 @@ describe("Digdragon mining Test", () => {
       pedningOwner,
       pendingAcc2_10,
     });
+
+    const info = await mine.getMineInfo();
+    console.log(info);
 
     expect((await nft.ownerOf(7)).toString()).equal(owner.address);
     // expect((await reward.balanceOf(acc1.address)).toString()).equal("6500");

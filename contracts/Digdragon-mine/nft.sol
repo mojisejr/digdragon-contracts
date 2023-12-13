@@ -28,4 +28,9 @@ contract NFT is ERC721Enumerable {
 
         emit Minted(tokenId, msg.sender);
     } 
+
+
+    function tokenURI(uint256 _tokenId) public override view returns(string memory) {
+        return "https://gateway.freecity.finance/ipfs/QmNpFvgyGBQjDRu73mFCUSA1gXyANx67VDhDujGq3QgKpq";
+    }
 } 

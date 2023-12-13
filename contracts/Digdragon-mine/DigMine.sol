@@ -9,10 +9,10 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "hardhat/console.sol";
 
 interface IHashPowerStorage {
-    function getHashPower(address assetAddress, uint256 tokenID) external view returns(uint256 power);
-    function getCumulativeHashPower(address assetAddress, uint256 tokenID) external view returns(uint256 power);
+    function getHashPower(uint256 _tokenId) external view returns(uint256 power);
 }
 
 
@@ -34,6 +34,9 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
     uint accTokenPerShare; // Accumulated Tokens per share, times 1e12.
     uint rewardsForWithdrawal;
 
+    uint256 fee = 300; //3%
+    address feeCollector;
+
     uint public totalHashPower;
     uint public lastRewardBlock;
 
@@ -47,11 +50,13 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
     mapping(address => Miner) miners;
     mapping(address => uint256) rewardDebt; //reward
     mapping(uint256 => uint256) tokenIdToHashPower;
+    mapping(uint256 => bool) stakedTokens;
 
     constructor(
         IERC721 _digdragon,
         IERC20 _reward,
         IHashPowerStorage _hashPowerStorage,
+        address _feeCollector,
         uint256 _startBlock,
         uint256 _rewardPerBlock,
         uint256 _rewardEndBlock
@@ -62,6 +67,16 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
         hashPowerStorage = _hashPowerStorage;
         startBlock = _startBlock;
         rewardPerBlock = _rewardPerBlock;
+        feeCollector  = _feeCollector;
+    }
+
+    function setFeeCollector(address _collector)  external onlyOwner {
+        feeCollector = _collector;
+    }
+
+    function _calculateFee(uint256 _pendingReward) internal view returns(uint256 feeRate, uint256 payout) {
+        feeRate = (_pendingReward * fee) / 10_000;
+        payout = _pendingReward - feeRate;
     }
 
     event HashPowerStorageChanged(address newStorage);
@@ -119,6 +134,17 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
         rewardPerBlock = _rewardPerBlock;
 
         emit NewRewardEndBlockSet(_rewardPerBlock);
+    }
+
+    event SetNewMiner(address miner);
+    function setMinerAddress(address _miner)
+    external
+    onlyOwner
+    {
+        require(_miner != address(0), 'setMinerAddress: invalid miner address');
+        digdragon = IERC721(_miner);
+
+        emit SetNewMiner(_miner);
     }
 
     function getUserStakedTokens(address _miner) 
@@ -212,8 +238,13 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
         if(miner.stakedHashPowerAmount == 0) return;
         uint pending = miner.stakedHashPowerAmount * accTokenPerShare / 1e12 - rewardDebt[msg.sender];
         rewardsForWithdrawal -= pending;
-        rewardDebt[msg.sender] = miner.stakedHashPowerAmount * accTokenPerShare / 1e12; 
-        IERC20(reward).safeTransfer(msg.sender, pending);
+        (uint256 feeRate, uint256 payout) = _calculateFee(pending);
+        // rewardDebt[msg.sender] = miner.stakedHashPowerAmount * accTokenPerShare / 1e12; 
+        console.log("pending = ", pending);
+        console.log("feeRate =  ", feeRate);
+        console.log("payout = ", payout);
+        IERC20(reward).safeTransfer(feeCollector, feeRate);
+        IERC20(reward).safeTransfer(msg.sender, payout);
     }
 
     function _updateRewardDebt(address _miner)
@@ -230,6 +261,10 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
         tokenIds.pop();
     }
 
+    function _updateStakedToken(uint256 _tokenId, bool _value) internal {
+        stakedTokens[_tokenId] = _value;
+    }
+
     event Staked(address indexed owner, uint[] tokenIds);
     function stake(uint[] calldata _tokenIds) 
     public 
@@ -238,8 +273,12 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
         uint depositedHashPower = 0;
         for(uint i = 0; i < _tokenIds.length; i ++) {
             require(IERC721(digdragon).ownerOf(_tokenIds[i]) == msg.sender, 'stake: Not token owner');
+            require(!stakedTokens[_tokenIds[i]], 'stake: This token is staked');
+
             IERC721(digdragon).transferFrom(msg.sender, address(this), _tokenIds[i]);
-            uint256 _hashPower = hashPowerStorage.getHashPower(address(digdragon), _tokenIds[i]);
+            _updateStakedToken(_tokenIds[i], true);
+
+            uint256 _hashPower = hashPowerStorage.getHashPower(_tokenIds[i]);
             //used for calculation loop during withdraw
             tokenIdToHashPower[_tokenIds[i]] = _hashPower;
             depositedHashPower += _hashPower;
@@ -271,7 +310,9 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
                 if(_tokenIds[i] == miner.stakedTokenIds[j]){
 
                     withdrawalHashPower += tokenIdToHashPower[_tokenIds[i]]; //getHashPower(tokenIds[i]);
+                    _removeMiner(j, msg.sender);
                     IERC721(digdragon).transferFrom(address(this), msg.sender, _tokenIds[i]);
+                    _updateStakedToken(_tokenIds[i], false);
 
                     tokenFound = true;
                     break;
@@ -321,20 +362,12 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
         emit EmergencyRewardWithDrawn(); 
     }
 
-    function getHashPower(uint256 tokenId) 
+    function getHashPower(uint256 _tokenId) 
     internal 
     view 
     returns(uint256 hashPower)
     {
-        hashPower = IHashPowerStorage(hashPowerStorage).getHashPower(address(digdragon), tokenId);
-    }
-
-    function getCumulativeHashPower(uint256 tokenId) 
-    internal 
-    view 
-    returns(uint256 cumulativeHashPower)
-    {
-        cumulativeHashPower = IHashPowerStorage(hashPowerStorage).getCumulativeHashPower(address(digdragon), tokenId);
+        hashPower = IHashPowerStorage(hashPowerStorage).getHashPower(_tokenId);
     }
 
     function getUserInfo(address _miner) 
@@ -351,5 +384,44 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
     returns(uint256 amount) 
     {
         amount = rewardDebt[_miner];
+    }
+
+    function totalStakedTokens() 
+    public 
+    view 
+    returns(uint256) 
+    {
+        return digdragon.balanceOf(address(this));
+    } 
+
+
+    struct MineInfo {
+        address digdragon;
+        address reward;
+        address hashStorage;
+        address feeCollector;
+        uint256 fee;
+        uint256 startBlock;
+        uint256 rewardEndBlock;
+        uint256 accTokenPerShare;
+        uint256 rewardsForWithdrawal;
+        uint256 totalStakedTokens;
+        uint256 totalHashPower;
+    } 
+
+    function getMineInfo() public view returns(MineInfo memory info) {
+        info = MineInfo(
+            address(digdragon),
+            address(reward),
+            address(hashPowerStorage),
+            address(feeCollector),
+            fee,
+            startBlock,
+            rewardEndBlock,
+            accTokenPerShare,
+            rewardsForWithdrawal,
+            totalStakedTokens(),
+            totalHashPower
+        );    
     }
 }
