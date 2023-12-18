@@ -9,7 +9,6 @@ import "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import "@openzeppelin/contracts/security/ReentrancyGuard.sol";
 import "@openzeppelin/contracts/utils/math/Math.sol";
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "hardhat/console.sol";
 
 interface IHashPowerStorage {
     function getHashPower(uint256 _tokenId) external view returns(uint256 power);
@@ -28,6 +27,7 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
     IHashPowerStorage hashPowerStorage;
 
     error ZeroStakedHashPowerAmount();
+    error ZeroStakedTokens();
 
     uint rewardPerBlock;
     uint startBlock;
@@ -240,9 +240,6 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
         rewardsForWithdrawal -= pending;
         (uint256 feeRate, uint256 payout) = _calculateFee(pending);
         // rewardDebt[msg.sender] = miner.stakedHashPowerAmount * accTokenPerShare / 1e12; 
-        console.log("pending = ", pending);
-        console.log("feeRate =  ", feeRate);
-        console.log("payout = ", payout);
         IERC20(reward).safeTransfer(feeCollector, feeRate);
         IERC20(reward).safeTransfer(msg.sender, payout);
     }
@@ -334,16 +331,19 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
 
         // Withdraw without caring about rewards. EMERGENCY ONLY.
     event EmergencyUnstaked();
-    function emergencyUnstake() 
+    function emergencyUnstake(address _owner) 
     public 
     nonReentrant
+    onlyOwner
     {
-        uint[] memory tokenIds = miners[msg.sender].stakedTokenIds;
-        totalHashPower -= miners[msg.sender].stakedHashPowerAmount;
-        delete miners[msg.sender];
-        delete rewardDebt[msg.sender];
+        uint[] memory tokenIds = miners[_owner].stakedTokenIds;
+        if(tokenIds.length <= 0) revert ZeroStakedTokens();
+        totalHashPower -= miners[_owner].stakedHashPowerAmount;
+        delete miners[_owner];
+        delete rewardDebt[_owner];
         for(uint i = 0; i < tokenIds.length; i++){
-            IERC721(digdragon).transferFrom(address(this), msg.sender, tokenIds[i]);
+            IERC721(digdragon).transferFrom(address(this), _owner, tokenIds[i]);
+            _updateStakedToken(tokenIds[i], false);
         }
 
         emit EmergencyUnstaked();

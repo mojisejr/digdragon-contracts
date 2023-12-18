@@ -1,4 +1,6 @@
 import { run } from "hardhat";
+import { cwd } from "process";
+import csvtojson from "csvtojson";
 
 async function main() {
   // const { nft, reward, hashPowerStorage, mine } = {
@@ -8,10 +10,16 @@ async function main() {
   //   mine: "0xDb06A56cF9EB8C02f678aE1a1D60609293b90688",
   // };
 
+  let hashpower = await csvtojson().fromFile(`${cwd()}/scripts/hashpower.csv`);
+  hashpower = hashpower.map((m) => m.hashpower);
+  let uri = await csvtojson().fromFile(`${cwd()}/scripts/out.csv`);
+  uri = uri.map((m) => m.uri);
+  const tokenIds = Array.from({ length: 200 }, (_, i) => i + 1);
+
   const { nft, reward, hashPowerStorage } = {
-    nft: "0xAa7212479BD439912785099A98C8b8D411F199Fa",
+    nft: "0x52853eDA884714dC35B5Ad9F493756C4b6692C49",
     reward: "0x584D164cD421cf26C70Fa9926F658803F362C355",
-    hashPowerStorage: "0x1AD3D989f2B6F770B20F08E56beCd9255Ee89044",
+    hashPowerStorage: "0x1c3B718abB940D23Ba32696a94E3979d2B4489C1",
   };
 
   // verify Contracts
@@ -27,36 +35,12 @@ async function main() {
   //   contract: "contracts/Digdragon-mine/erc20.sol:Reward",
   // });
 
-  // console.log("hashPowerStorage verifying => ", hashPowerStorage);
-  // await run("verify:verify", {
-  //   address: hashPowerStorage,
-  //   contract: "contracts/Digdragon-mine/hashstorage.sol:DigDragonPowerStorage",
-  //   constructorArguments: [
-  //     [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
-  //     [
-  //       50n,
-  //       20n,
-  //       30n,
-  //       40n,
-  //       80n,
-  //       80n,
-  //       20n,
-  //       60n,
-  //       30n,
-  //       70n,
-  //       50n,
-  //       20n,
-  //       30n,
-  //       40n,
-  //       80n,
-  //       80n,
-  //       20n,
-  //       60n,
-  //       30n,
-  //       70n,
-  //     ],
-  //   ],
-  // });
+  console.log("hashPowerStorage verifying => ", hashPowerStorage);
+  await run("verify:verify", {
+    address: hashPowerStorage,
+    contract: "contracts/Digdragon-mine/hashstorage.sol:DigDragonPowerStorage",
+    constructorArguments: [tokenIds, hashpower],
+  });
 
   const startBlock = 13860319n;
   const endBlock = startBlock + 10000000n;

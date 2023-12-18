@@ -1,5 +1,7 @@
 import { ethers } from "hardhat";
 import fs from "fs";
+import csvtojson from "csvtojson";
+import { cwd } from "process";
 
 async function deploy() {
   const [owner] = await ethers.getSigners();
@@ -10,70 +12,55 @@ async function deploy() {
     "DigDragonPowerStorage"
   );
 
-  const startBlock = 13860319n;
-  const endBlock = startBlock + 10000000n;
-  const rewardPerBlock = 1000;
+  let hashpower = await csvtojson().fromFile(`${cwd()}/scripts/hashpower.csv`);
+  hashpower = hashpower.map((m) => m.hashpower);
+  let uri = await csvtojson().fromFile(`${cwd()}/scripts/out.csv`);
+  uri = uri.map((m) => m.uri);
+  const tokenIds = Array.from({ length: 200 }, (_, i) => i + 1);
+
+  // const startBlock = 13860319;
+  // const endBlock = startBlock + 10000000;
+  // const rewardPerBlock = 1000;
 
   const nft = await nftFact.deploy();
   await nft.deployed();
 
-  // const reward = await rewardFact.deploy();
-  // await reward.deployed();
+  await nft.setBaseUri(tokenIds, uri);
 
-  // const hashPowerStorage = await hashStorageFact.deploy(
-  //   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
-  //   [
-  //     50n,
-  //     20n,
-  //     30n,
-  //     40n,
-  //     80n,
-  //     80n,
-  //     20n,
-  //     60n,
-  //     30n,
-  //     70n,
-  //     50n,
-  //     20n,
-  //     30n,
-  //     40n,
-  //     80n,
-  //     80n,
-  //     20n,
-  //     60n,
-  //     30n,
-  //     70n,
-  //   ]
-  // );
-  // await hashPowerStorage.deployed();
+  // // const reward = await rewardFact.deploy();
+  // // await reward.deployed();
 
-  // const mine = await mineFact.deploy(
-  //   nft.address,
-  //   reward.address,
-  //   hashPowerStorage.address,
-  //   startBlock,
-  //   rewardPerBlock,
-  //   endBlock
-  // );
+  const hashPowerStorage = await hashStorageFact.deploy(tokenIds, hashpower);
+  await hashPowerStorage.deployed();
 
-  // await mine.deployed();
+  // // const mine = await mineFact.deploy(
+  // //   nft.address,
+  // //   reward.address,
+  // //   hashPowerStorage.address,
+  // //   owner.address,
+  // //   startBlock,
+  // //   rewardPerBlock,
+  // //   endBlock
+  // // );
 
-  // await reward.transfer(mine.address, reward.totalSupply());
-  // await reward.transfer(owner.address, reward.totalSupply());
+  // // await mine.deployed();
 
-  // console.log({
-  //   nft: nft.address,
-  //   reward: reward.address,
-  //   hashPowerStorage: hashPowerStorage.address,
-  //   // mine: mine.address,
-  // });
+  // // await reward.transfer(mine.address, reward.totalSupply());
+  // // await reward.transfer(owner.address, reward.totalSupply());
+
+  console.log({
+    nft: nft.address,
+    // reward: reward.address,
+    hashPowerStorage: hashPowerStorage.address,
+    // mine: mine.address,
+  });
 
   fs.writeFileSync(
     "address.json",
     JSON.stringify({
       nft: nft.address,
       // reward: reward.address,
-      // hashPowerStorage: hashPowerStorage.address,
+      hashPowerStorage: hashPowerStorage.address,
       // mine: mine.address,
     })
   );
