@@ -173,10 +173,10 @@ contract DracaToken is ERC20, ERC20Burnable, AccessControl {
         return (allEvents, claimable, claimed);
     }
 
+    function isRedeemable(address _receiver) external view returns(bool) {
+        return hasRole(RECEIVER, _receiver);
+    }
 
-    //==========
-    // View 
-    //==========
     function getCurrentEventId() public view returns(uint256) {
         return eventId + 1;
     }
