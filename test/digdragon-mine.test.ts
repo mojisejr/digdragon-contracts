@@ -16,6 +16,12 @@ describe("Digdragon mining Test", () => {
     const rewardPerBlock = 1000;
     const nft = await nftFact.deploy();
     await nft.deployed();
+
+    await nft.addWhitelist(
+      [owner.address, acc1.address, acc2.address],
+      [10, 10, 10]
+    );
+
     const reward = await rewardFact.deploy();
     await reward.deployed();
     const hashPowerStorage = await hashStorageFact.deploy(

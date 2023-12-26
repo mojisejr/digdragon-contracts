@@ -386,6 +386,14 @@ contract DigDragonMine is ERC721Holder, ReentrancyGuard, Ownable {
         amount = rewardDebt[_miner];
     }
 
+    function getRewardPerBlock()
+    public
+    view
+    returns(uint256)
+    {
+        return rewardPerBlock;
+    }
+
     function totalStakedTokens() 
     public 
     view 
