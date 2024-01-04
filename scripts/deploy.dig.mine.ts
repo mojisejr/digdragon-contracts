@@ -59,7 +59,7 @@ async function deploy() {
     "address.json",
     JSON.stringify({
       nft: nft.address,
-      // reward: reward.address,
+      // reward: reward.,
       hashPowerStorage: hashPowerStorage.address,
       // mine: mine.address,
     })

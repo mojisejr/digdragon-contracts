@@ -123,6 +123,7 @@ describe("Digdragon mining Test", () => {
 
   it("2. reset new staking period", async () => {
     const { nft, mine, reward, owner } = await deploy();
+
     const startTime = await time.latestBlock();
     console.log("startTime: ", startTime);
 
@@ -139,8 +140,14 @@ describe("Digdragon mining Test", () => {
     console.log("20 blocks passed");
     const endTime = await time.latestBlock();
 
+    const contractAPR = await mine.getAPRForContract();
+    console.log("APR: ", contractAPR);
+
     //4. stake another token
     await mine.unstake([1]);
+
+    const info2 = await mine.getMineInfo();
+    console.log(info2);
 
     //5. check balance of withdrawn because of stake new token
     const end = (await reward.balanceOf(owner.address)).toString();

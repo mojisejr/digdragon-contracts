@@ -20,6 +20,10 @@ const config: HardhatUserConfig = {
       url: "https://rpc-testnet.bitkubchain.io",
       accounts: [process.env.wallet2!],
     },
+    bitkub: {
+      url: "https://rpc.bitkubchain.io",
+      accounts: [process.env.wallet2!],
+    },
     mumbai_testnet: {
       url: "https://rpc-mumbai.maticvigil.com",
       accounts: [process.env.wallet!],
