@@ -16,18 +16,20 @@ async function main() {
   uri = uri.map((m) => m.uri);
   const tokenIds = Array.from({ length: 200 }, (_, i) => i + 1);
 
-  const { nft, reward, hashPowerStorage } = {
-    nft: "0x52853eDA884714dC35B5Ad9F493756C4b6692C49",
-    reward: "0x584D164cD421cf26C70Fa9926F658803F362C355",
-    hashPowerStorage: "0x1c3B718abB940D23Ba32696a94E3979d2B4489C1",
+  const { nft, reward, hashPowerStorage, mine, feeCollector } = {
+    nft: "0x7C80f994C724b0C8F834F4303C4f142004798219",
+    reward: "0x726613C4494C60B7dCdeA5BE2846180C1DAfBE8B",
+    hashPowerStorage: "0xa899906616f7Ee6DCB19740AC746839476ebd98E",
+    mine: "0xD83b57C947dfF915fd6969612faaf2059dD8a026",
+    feeCollector: "0x1265AF05ce0b5b2fFEd3E9F3c45D47fe3Dc7B5B2",
   };
 
   // verify Contracts
-  console.log("NFT verifying =>  ", nft);
-  await run("verify:verify", {
-    address: nft,
-    contract: "contracts/Digdragon-mine/nft.sol:NFT",
-  });
+  // console.log("NFT verifying =>  ", nft);
+  // await run("verify:verify", {
+  //   address: nft,
+  //   contract: "contracts/Digdragon-mine/nft.sol:NFT",
+  // });
 
   // console.log("reward verifying => ", reward);
   // await run("verify:verify", {
@@ -46,40 +48,20 @@ async function main() {
   const endBlock = startBlock + 10000000n;
   const rewardPerBlock = 1000;
 
-  // console.log("mine verifying => ", mine);
-  // await run("verify:verify", {
-  //   address: mine,
-  //   contract: "contracts/Digdragon-mine/DigMine.sol:DigDragonMine",
-  //   constructorArguments: [
-  //     nft,
-  //     reward,
-  //     hashPowerStorage,
-  //     startBlock,
-  //     endBlock,
-  //     rewardPerBlock,
-  //   ],
-  // });
-
-  // console.log("Stimulus verifing =>  ", stimulus);
-  // await run("verify:verify", {
-  //   address: stimulus,
-  //   contract: "contracts/Serum.v1.sol:SerumV1",
-  // });
-
-  // console.log("Labs verifying => ", labs);
-  // await run("verify:verify", {
-  //   address: labs,
-  //   contract: "contracts/v2/FusionLabsV2.sol:FusionLabsV2",
-  //   constructorArguments: [host, stimulus, mutant, 1000],
-  // });
-  //
-
-  //   console.log("Mutant verifying => ", mutant);
-  //   await run("verify:verify", {
-  //     address: mutant,
-  //     contract: "contracts/MutantOppabear.sol:OppaBearEvolutionGen2",
-  //     constructorArguments: [owner, labs],
-  //   }).catch((e) => console.error("gen2", e.message));
+  console.log("DigDragonMine verifying =>  ", mine);
+  await run("verify:verify", {
+    address: mine,
+    contract: "contracts/Digdragon-mine/DigMine.sol:DigDragonMine",
+    constructorArguments: [
+      nft,
+      reward,
+      hashPowerStorage,
+      feeCollector,
+      startBlock,
+      rewardPerBlock,
+      endBlock,
+    ],
+  });
 }
 
 // We recommend this pattern to be able to use async/await everywhere

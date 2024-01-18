@@ -52,10 +52,10 @@ const config: HardhatUserConfig = {
         },
       },
       {
-        network: "bitkub_mainnet",
+        network: "bitkub",
         chainId: 96,
         urls: {
-          apiURL: "https://www.bkcscan.com/api/",
+          apiURL: "https://www.bkcscan.com/api",
           browserURL: "https://www.bkcscan.com",
         },
       },

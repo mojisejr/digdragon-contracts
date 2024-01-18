@@ -60,6 +60,7 @@ describe("Digdragon mining Test", () => {
       endBlock
     );
     await mine.deployed();
+
     await reward.transfer(mine.address, reward.totalSupply());
     // //mint 3 nft to each account
     for (let i = 0; i < 3; i++) {
@@ -246,5 +247,25 @@ describe("Digdragon mining Test", () => {
     expect((await nft.ownerOf(7)).toString()).equal(owner.address);
     // expect((await reward.balanceOf(acc1.address)).toString()).equal("6500");
     // expect((await reward.balanceOf(owner.address)).toString()).equal("6500");
+  });
+
+  it("should be able to change reward address", async () => {
+    const { nft, mine, reward, owner, acc2, acc1 } = await deploy();
+
+    const reward2Fac = await ethers.getContractFactory("Reward");
+
+    const reward2 = await reward2Fac.deploy();
+
+    await reward2.deployed();
+
+    const info1 = await mine.getMineInfo();
+    console.log(info1.reward);
+
+    await mine.connect(owner).setRewardAddress(reward2.address);
+
+    const info2 = await mine.getMineInfo();
+    console.log(info2.reward);
+
+    expect(reward2.address).to.equal(info2.reward);
   });
 });
