@@ -3,10 +3,10 @@ import fs from "fs";
 import dayjs from "dayjs";
 
 //Setting
-const totalRewardToSpendInEther = 0.0035;
-const stakingPeriodInDays = 13;
+const totalRewardToSpendInEther = 0.002;
+const stakingPeriodInDays = 25;
 // const startTime = 1705323600;
-const startTime = 1705496400;
+const startTime = 1707051600;
 
 const blockTime = 5;
 const dayInSecs = 86400;
@@ -17,7 +17,6 @@ const rewardPerDay = totalRewardToSpendInEther / stakingPeriodInDays;
 const rewardPerBlock = rewardPerDay / dayBlocks;
 
 function calculateDestinationBlocks(period: number, currentBlock: string) {
-  console.log(dayBlocks);
   return period * dayBlocks + +currentBlock;
 }
 
@@ -49,11 +48,11 @@ export async function calculateRewardParameters() {
   console.log({
     totalRewardToSpendInEther,
     daysBeforeStarts,
-    startTime: dayjs(new Date(startTime * 1000)).format("YYYY-MM-DDTHH:mm"),
+    startTime: dayjs(new Date(startTime * 1000)).format("DD-MM-YYYYTHH:mm"),
     startBlock,
     endTime: dayjs(new Date(startTime * 1000))
-      .add(30, "d")
-      .format("YYYY-MM-DDTHH:mm"),
+      .add(stakingPeriodInDays, "d")
+      .format("DD-MM-YYYYTHH:mm"),
     endBlock: destinationBlock,
     rewardPerBlock: rewardPerBlock.toFixed(18),
     parsedRewardPerBlock: parsedRewardPerBlock.toString(),
